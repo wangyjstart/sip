@@ -27,7 +27,7 @@ HOOK_TAG="# managed by sip"                             # unique tag for hook id
 # All listed IDEs share the same Anthropic-originated hook specification.
 # config_file defaults to settings.json; codex uses hooks.json.
 # Default: auto-detect. Others require --ide to specify explicitly.
-_IDES="claude:$HOME/.claude codebuddy:$HOME/.codebuddy cursor:$HOME/.cursor cline:$HOME/.cline augment:$HOME/.augment windsurf:$HOME/.windsurf codex:$HOME/.codex:hooks.json"
+_IDES="claude:$HOME/.claude codebuddy:$HOME/.codebuddy workbuddy:$HOME/.workbuddy cursor:$HOME/.cursor cline:$HOME/.cline augment:$HOME/.augment windsurf:$HOME/.windsurf codex:$HOME/.codex:hooks.json"
 
 # ─── Prerequisites ────────────────────────────────────────────────────────────
 
@@ -385,7 +385,7 @@ case "${1:-}" in
         echo ""
         echo "Options:"
         echo "  install/uninstall --ide <name>   Target IDE"
-        echo "                                  Supported: claude codebuddy cursor cline augment windsurf"
+        echo "                                  Supported: claude codebuddy workbuddy cursor cline augment windsurf"
         echo "                                  Default: auto-detect"
         echo ""
         echo "Environment:"

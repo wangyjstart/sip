@@ -98,12 +98,18 @@ Default: auto-detect (first IDE whose config dir exists, fallback to claude). Us
 |---|---|
 | [Claude Code](https://docs.anthropic.com/en/docs/claude-code) | `claude` (fallback) |
 | [CodeBuddy](https://www.codebuddy.ai/) | `codebuddy` |
+| [WorkBuddy](https://www.workbuddy.ai/) | `workbuddy` |
 | [Cursor](https://cursor.com/) | `cursor` |
 | [Cline](https://docs.cline.bot/) | `cline` |
 | [Augment](https://www.augmentcode.com/) | `augment` |
 | [Windsurf](https://docs.windsurf.com/) | `windsurf` |
 | [Codex](https://www.codex-docs.com/) | `codex` |
 
+> **CodeBuddy vs WorkBuddy:** these are **separate** IDEs with separate config dirs.
+> CodeBuddy reads `~/.codebuddy/settings.json`; WorkBuddy reads `~/.workbuddy/settings.json`
+> (selected via the `WORKBUDDY_CONFIG_DIR` env var). Run `--ide codebuddy` **and**
+> `--ide workbuddy` separately if you use both.
+>
 > **Codex note:** hooks are written to `~/.codex/hooks.json` (not `settings.json`).
 > Codex requires non-managed hooks to be trusted once — after install, run `/hooks` in Codex
 > and approve the sip hook (bound to its current hash; re-trust if the command changes).

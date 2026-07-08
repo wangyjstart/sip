@@ -98,12 +98,18 @@ sip.sh --help       # 帮助
 |---|---|
 | [Claude Code](https://docs.anthropic.com/en/docs/claude-code) | `claude`（兜底） |
 | [CodeBuddy](https://www.codebuddy.ai/) | `codebuddy` |
+| [WorkBuddy](https://www.workbuddy.ai/) | `workbuddy` |
 | [Cursor](https://cursor.com/) | `cursor` |
 | [Cline](https://docs.cline.bot/) | `cline` |
 | [Augment](https://www.augmentcode.com/) | `augment` |
 | [Windsurf](https://docs.windsurf.com/) | `windsurf` |
 | [Codex](https://www.codex-docs.com/) | `codex` |
 
+> **CodeBuddy 与 WorkBuddy 的区别：** 这是**两个独立**的 IDE，配置目录不同。
+> CodeBuddy 读 `~/.codebuddy/settings.json`；WorkBuddy 读 `~/.workbuddy/settings.json`
+> （由 `WORKBUDDY_CONFIG_DIR` 环境变量决定）。两个都用的话需分别执行
+> `--ide codebuddy` 和 `--ide workbuddy` 安装。
+>
 > **Codex 说明：** hooks 写入 `~/.codex/hooks.json`（不是 `settings.json`）。
 > Codex 要求非托管 hook 信任一次——安装后在 Codex 中运行 `/hooks`，
 > 批准 sip hook（绑定到当前 hash；命令变更后需重新信任）。
