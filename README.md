@@ -163,6 +163,21 @@ flowchart LR
 - **All kill+restart**: `PostToolUse` fires on every tool call (could be every few seconds during intensive work). Constantly killing and restarting `caffeinate` means `powerd` must repeatedly register/release power assertions — wasteful.
 - **reset + ensure**: Only user prompts and subagent starts (infrequent) reset the timer. Tool calls just check "is it running?" — one `pgrep`, near-zero overhead.
 
+### Why a lock?
+
+With multiple clients (Claude Code + WorkBuddy + Cursor …) and multiple sessions per client, hook handlers fire concurrently. Without coordination, N concurrent `reset` calls would race through `pkill` → `start` and spawn N caffeinate processes (verified: 10 concurrent resets → 10 processes, each holding a power assertion for 15 min).
+
+sip serializes hook handlers with a `mkdir`-based atomic lock:
+
+| Property | Mechanism |
+|---|---|
+| Atomic acquire | `mkdir` is POSIX-atomic — exactly one caller creates the lock dir |
+| Stale-lock recovery | holder PID recorded; if dead (`kill -0`), next acquirer reclaims |
+| No IDE blocking | acquire times out at ~2s (hook timeout is 5s); failure is silent |
+| Zero dependencies | pure shell, no `flock`/`shlock`/`python3` needed |
+
+Lock location: `${TMPDIR:-/tmp}/sip.lock`. Under concurrency every handler eventually runs one-at-a-time, so the final state is always exactly one caffeinate. See `test/sip-concurrency-test.sh`.
+
 ### Why no Stop hook?
 
 `Stop` fires when a conversation turn ends. In multi-session scenarios:
@@ -192,6 +207,7 @@ With `PostToolUse` providing continuous coverage during active work, the timeout
 | Scenario | Behavior |
 |---|---|
 | Multiple sessions / agents | Any `UserPromptSubmit` resets timer; `PostToolUse` ensures coverage |
+| Multiple clients firing hooks concurrently | `mkdir` lock serializes handlers — always exactly one caffeinate |
 | User stops working | Timer expires 15 min after last user prompt |
 | Long task (45 min, no prompts) | `PostToolUse` ensures caffeinate stays alive; if it expires between tool calls, next call restarts it |
 | `caffeinate` killed externally | Next hook trigger (reset or ensure) starts a new one |

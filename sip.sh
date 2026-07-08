@@ -22,6 +22,9 @@ INSTALL_PATH="${INSTALL_DIR}/sip.sh"
 HOOK_CMD="${HOME}/.local/bin/sip.sh"
 MARKER="sip-caffeinate"                                # identifier in process args
 HOOK_TAG="# managed by sip"                             # unique tag for hook identification
+LOCK_DIR="${TMPDIR:-/tmp}/sip.lock"                    # mkdir atomic lock dir (prevents concurrent caffeinate)
+LOCK_TIMEOUT_MS=2000                                   # max wait to acquire lock (~2s; hook timeout=5s leaves 3s for work)
+LOCK_POLL_MS=100                                       # lock poll interval
 
 # IDE definitions: name:config_dir[:config_file] (space-separated)
 # All listed IDEs share the same Anthropic-originated hook specification.
@@ -37,6 +40,38 @@ _require() {
         exit 1
     }
 }
+
+# ─── Locking ──────────────────────────────────────────────────────────────────
+#
+# mkdir is POSIX-atomic: exactly one concurrent caller creates the dir, the
+# rest fail. This serializes hook handlers (reset/ensure/stop) so that under
+# multi-client / multi-session concurrency only one caffeinate ever exists.
+#
+# Stale-lock recovery: if the holder dies without releasing (e.g. SIGKILL),
+# the next acquirer detects the dead pid via `kill -0` and reclaims the lock.
+# Worst case (pid file unreadable / holder alive but wedged): the acquirer
+# gives up after LOCK_TIMEOUT_MS and the hook fails silently — it never blocks
+# the IDE, because hooks run with a 5s timeout and we wait at most ~2s.
+
+_acquire_lock() {
+    local tries=0 max_tries=$(( LOCK_TIMEOUT_MS / LOCK_POLL_MS ))
+    while ! mkdir "$LOCK_DIR" 2>/dev/null; do
+        # Reclaim if the holder is dead (prevents permanent deadlock).
+        local owner_pid
+        owner_pid=$(cat "$LOCK_DIR/pid" 2>/dev/null || true)
+        if [ -n "$owner_pid" ] && ! kill -0 "$owner_pid" 2>/dev/null; then
+            rm -rf "$LOCK_DIR" 2>/dev/null || true
+            continue
+        fi
+        tries=$((tries + 1))
+        [ "$tries" -ge "$max_tries" ] && return 1
+        sleep 0.1
+    done
+    echo "$$" > "$LOCK_DIR/pid"
+    trap '_release_lock' EXIT INT TERM
+}
+
+_release_lock() { rm -rf "$LOCK_DIR" 2>/dev/null || true; }
 
 # ─── IDE helpers ──────────────────────────────────────────────────────────────
 
@@ -130,14 +165,17 @@ _start_caffeinate() {
 
 cmd_hook_reset() {
     _consume_stdin
+    _acquire_lock || return 0
     pkill -f "$MARKER" 2>/dev/null || true
     _start_caffeinate 2>/dev/null || true
+    _release_lock
 }
 
 cmd_hook_ensure() {
     _consume_stdin
-    pgrep -f "$MARKER" >/dev/null 2>&1 && return 0
-    _start_caffeinate 2>/dev/null || true
+    _acquire_lock || return 0
+    pgrep -f "$MARKER" >/dev/null 2>&1 || _start_caffeinate 2>/dev/null || true
+    _release_lock
 }
 
 # ─── Status ───────────────────────────────────────────────────────────────────
@@ -199,10 +237,12 @@ cmd_status() {
 # ─── Stop ─────────────────────────────────────────────────────────────────────
 
 cmd_stop() {
+    _acquire_lock || return 1
     local stopped=0
     while IFS= read -r pid; do
         kill "$pid" 2>/dev/null && stopped=$((stopped + 1))
     done < <(pgrep -f "$MARKER" 2>/dev/null || true)
+    _release_lock
     echo "[sip] stopped $stopped instance(s)"
 }
 

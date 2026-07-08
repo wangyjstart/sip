@@ -163,6 +163,21 @@ flowchart LR
 - **全部 kill+restart**：`PostToolUse` 每次工具调用都触发（密集工作时可能每几秒一次）。频繁 kill/restart caffeinate 意味着 `powerd` 需要反复注册/释放 power assertion——浪费。
 - **reset + ensure**：只有用户 prompt 和子 agent 启动（低频）才重置计时器。工具调用只检查"在跑吗？"——一次 `pgrep`，几乎零开销。
 
+### 为什么需要锁？
+
+多个客户端（Claude Code + WorkBuddy + Cursor …）同时运行、每个客户端又有多个 session 时，hook 处理会并发触发。若不加协调，N 个并发 `reset` 会竞相执行 `pkill` → `start`，从而启动 N 个 caffeinate 进程（实测：10 个并发 reset → 10 个进程，各自持有 power assertion 长达 15 分钟）。
+
+sip 用基于 `mkdir` 的原子锁串行化 hook 处理：
+
+| 特性 | 机制 |
+|---|---|
+| 原子获取 | `mkdir` 是 POSIX 原子操作——只有一个调用者能创建锁目录 |
+| 孤儿锁恢复 | 记录持有者 PID；若已死（`kill -0` 检测），下一个获取者自动回收 |
+| 不阻塞 IDE | 获取锁最长等待 ~2s（hook 超时 5s），超时静默失败 |
+| 零依赖 | 纯 shell，无需 `flock`/`shlock`/`python3` |
+
+锁位置：`${TMPDIR:-/tmp}/sip.lock`。并发下每个处理最终排队逐一执行，最终态始终只有一个 caffeinate。见 `test/sip-concurrency-test.sh`。
+
 ### 为什么不用 Stop hook？
 
 `Stop` 在对话轮次结束时触发。多会话场景下：
@@ -192,6 +207,7 @@ sequenceDiagram
 | 场景 | 行为 |
 |---|---|
 | 多个 session / agent 并发 | 任何 `UserPromptSubmit` 重置计时器；`PostToolUse` 保证覆盖 |
+| 多客户端同时触发 hook | `mkdir` 锁串行化处理——始终只有一个 caffeinate |
 | 用户停止操作 | 最后一次 prompt 后 15 分钟过期 |
 | 长任务（45 分钟，无新 prompt） | `PostToolUse` 保证 caffeinate 持续存活；若到期，下次工具调用立即重启 |
 | caffeinate 被外部 kill | 下次 hook 触发自动启动新的 |
