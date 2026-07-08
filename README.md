@@ -59,7 +59,7 @@ This design means:
 **One-liner install** (recommended):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/tivnantu/sip/main/sip.sh -o ~/.local/bin/sip.sh \
+curl -fsSL https://raw.githubusercontent.com/wangyjstart/sip/main/sip.sh -o ~/.local/bin/sip.sh \
   && chmod +x ~/.local/bin/sip.sh \
   && ~/.local/bin/sip.sh install
 ```
@@ -67,11 +67,14 @@ curl -fsSL https://raw.githubusercontent.com/tivnantu/sip/main/sip.sh -o ~/.loca
 Or clone and install:
 
 ```bash
-git clone https://github.com/tivnantu/sip.git && cd sip
+git clone https://github.com/wangyjstart/sip.git && cd sip
 ./sip.sh install
 ```
 
 Restart your IDE — done!
+
+> **Note:** This is a personal fork of [tivnantu/sip](https://github.com/tivnantu/sip) that adds
+> native Codex support. For the original (without Codex), use `tivnantu/sip`.
 
 ## Usage
 
@@ -82,6 +85,7 @@ sip.sh status       # show installation and runtime status
 sip.sh stop         # kill active caffeinate instance
 sip.sh install      # install script and register hooks (auto-detect IDE)
 sip.sh install --ide cursor   # install for specific IDE
+sip.sh install --ide codex     # install for Codex (writes ~/.codex/hooks.json)
 sip.sh uninstall    # remove hooks, stop caffeinate, remove script
 sip.sh --help       # show help
 ```
@@ -98,6 +102,11 @@ Default: auto-detect (first IDE whose config dir exists, fallback to claude). Us
 | [Cline](https://docs.cline.bot/) | `cline` |
 | [Augment](https://www.augmentcode.com/) | `augment` |
 | [Windsurf](https://docs.windsurf.com/) | `windsurf` |
+| [Codex](https://www.codex-docs.com/) | `codex` |
+
+> **Codex note:** hooks are written to `~/.codex/hooks.json` (not `settings.json`).
+> Codex requires non-managed hooks to be trusted once — after install, run `/hooks` in Codex
+> and approve the sip hook (bound to its current hash; re-trust if the command changes).
 
 ## Configuration
 

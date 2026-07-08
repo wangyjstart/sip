@@ -23,10 +23,11 @@ HOOK_CMD="${HOME}/.local/bin/sip.sh"
 MARKER="sip-caffeinate"                                # identifier in process args
 HOOK_TAG="# managed by sip"                             # unique tag for hook identification
 
-# IDE definitions: name:config_dir (space-separated)
+# IDE definitions: name:config_dir[:config_file] (space-separated)
 # All listed IDEs share the same Anthropic-originated hook specification.
+# config_file defaults to settings.json; codex uses hooks.json.
 # Default: auto-detect. Others require --ide to specify explicitly.
-_IDES="claude:$HOME/.claude codebuddy:$HOME/.codebuddy cursor:$HOME/.cursor cline:$HOME/.cline augment:$HOME/.augment windsurf:$HOME/.windsurf"
+_IDES="claude:$HOME/.claude codebuddy:$HOME/.codebuddy cursor:$HOME/.cursor cline:$HOME/.cline augment:$HOME/.augment windsurf:$HOME/.windsurf codex:$HOME/.codex:hooks.json"
 
 # ─── Prerequisites ────────────────────────────────────────────────────────────
 
@@ -40,8 +41,16 @@ _require() {
 # ─── IDE helpers ──────────────────────────────────────────────────────────────
 
 _ide_name()     { echo "${1%%:*}"; }
-_ide_dir()      { echo "${1#*:}"; }
-_ide_settings() { echo "${1#*:}/settings.json"; }
+# _ide_dir: return config dir = second segment (handle name:dir[:file])
+_ide_dir()      { local rest="${1#*:}"; echo "${rest%%:*}"; }
+# _ide_settings: return config file path; default settings.json, codex uses hooks.json
+_ide_settings() {
+    local rest="${1#*:}"                                    # dir[:file]
+    local dir="${rest%%:*}"                                 # dir
+    local file="${rest#*:}"                                 # :file or rest itself if no ':'
+    [ "$file" = "$rest" ] && file="settings.json"           # no ':file' → default
+    echo "$dir/$file"
+}
 
 _get_ide() {
     # Lookup IDE entry by name
@@ -277,6 +286,8 @@ cmd_install() {
         for event in $events_ensure; do
             _register_hook "$event" "$HOOK_CMD ensure" "$settings"
         done
+        # Codex requires trusting non-managed hooks once (bound to current hash).
+        [ "$name" = "codex" ] && echo "     ⚠️  Codex: run /hooks in Codex to trust the hook (one-time)"
         echo ""
     done < <(_resolve_ides "$@")
 
