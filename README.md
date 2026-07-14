@@ -74,7 +74,7 @@ git clone https://github.com/wangyjstart/sip.git && cd sip
 Restart your IDE — done!
 
 > **Note:** This is a personal fork of [tivnantu/sip](https://github.com/tivnantu/sip) that adds
-> native Codex support. For the original (without Codex), use `tivnantu/sip`.
+> native Codex and ZCode support. For the original, use `tivnantu/sip`.
 
 ## Usage
 
@@ -86,6 +86,7 @@ sip.sh stop         # kill active caffeinate instance
 sip.sh install      # install script and register hooks (auto-detect IDE)
 sip.sh install --ide cursor   # install for specific IDE
 sip.sh install --ide codex     # install for Codex (writes ~/.codex/hooks.json)
+sip.sh install --ide zcode     # install for ZCode (writes ~/.zcode/cli/config.json)
 sip.sh uninstall    # remove hooks, stop caffeinate, remove script
 sip.sh --help       # show help
 ```
@@ -104,6 +105,7 @@ Default: auto-detect (first IDE whose config dir exists, fallback to claude). Us
 | [Augment](https://www.augmentcode.com/) | `augment` |
 | [Windsurf](https://docs.windsurf.com/) | `windsurf` |
 | [Codex](https://www.codex-docs.com/) | `codex` |
+| [ZCode](https://zcode.ai/) | `zcode` |
 
 > **CodeBuddy vs WorkBuddy:** these are **separate** IDEs with separate config dirs.
 > CodeBuddy reads `~/.codebuddy/settings.json`; WorkBuddy reads `~/.workbuddy/settings.json`
@@ -113,6 +115,10 @@ Default: auto-detect (first IDE whose config dir exists, fallback to claude). Us
 > **Codex note:** hooks are written to `~/.codex/hooks.json` (not `settings.json`).
 > Codex requires non-managed hooks to be trusted once — after install, run `/hooks` in Codex
 > and approve the sip hook (bound to its current hash; re-trust if the command changes).
+>
+> **ZCode note:** hooks are written to `~/.zcode/cli/config.json` under `.hooks.events`
+> (not `.hooks`), with `hooks.enabled: true` and no `matcher` field. ZCode does not support
+> `SubagentStart`, so only `UserPromptSubmit` (reset) and `PostToolUse` (ensure) are registered.
 
 ## Configuration
 

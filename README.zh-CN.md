@@ -74,7 +74,7 @@ git clone https://github.com/wangyjstart/sip.git && cd sip
 重启 IDE 即可生效。
 
 > **说明：** 这是 [tivnantu/sip](https://github.com/tivnantu/sip) 的个人 fork，新增了
-> Codex 原生支持。若用原版（无 Codex 支持），将地址换成 `tivnantu/sip`。
+> Codex 和 ZCode 原生支持。若用原版，将地址换成 `tivnantu/sip`。
 
 ## 使用方式
 
@@ -86,6 +86,7 @@ sip.sh stop         # 手动停止 caffeinate
 sip.sh install      # 安装脚本并注册 hook（自动检测 IDE）
 sip.sh install --ide cursor   # 安装到指定 IDE
 sip.sh install --ide codex     # 安装到 Codex（写入 ~/.codex/hooks.json）
+sip.sh install --ide zcode     # 安装到 ZCode（写入 ~/.zcode/cli/config.json）
 sip.sh uninstall    # 移除 hook、停止 caffeinate、删除脚本
 sip.sh --help       # 帮助
 ```
@@ -104,6 +105,7 @@ sip.sh --help       # 帮助
 | [Augment](https://www.augmentcode.com/) | `augment` |
 | [Windsurf](https://docs.windsurf.com/) | `windsurf` |
 | [Codex](https://www.codex-docs.com/) | `codex` |
+| [ZCode](https://zcode.ai/) | `zcode` |
 
 > **CodeBuddy 与 WorkBuddy 的区别：** 这是**两个独立**的 IDE，配置目录不同。
 > CodeBuddy 读 `~/.codebuddy/settings.json`；WorkBuddy 读 `~/.workbuddy/settings.json`
@@ -113,6 +115,10 @@ sip.sh --help       # 帮助
 > **Codex 说明：** hooks 写入 `~/.codex/hooks.json`（不是 `settings.json`）。
 > Codex 要求非托管 hook 信任一次——安装后在 Codex 中运行 `/hooks`，
 > 批准 sip hook（绑定到当前 hash；命令变更后需重新信任）。
+>
+> **ZCode 说明：** hooks 写入 `~/.zcode/cli/config.json` 的 `.hooks.events` 下
+> （不是 `.hooks`），需设 `hooks.enabled: true`，且无 `matcher` 字段。
+> ZCode 不支持 `SubagentStart`，因此只注册 `UserPromptSubmit`（reset）和 `PostToolUse`（ensure）。
 
 ## 配置
 
